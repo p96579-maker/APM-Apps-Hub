@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-Hant" translate="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>APM Apps Hub（可離線版 + 更新按鈕）</title>
+  <meta name="description" content="APM 工具集合（可離線）。支援手動更新最新版本。">
+  <meta name="theme-color" content="#0b1324">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    :root{--bg:#0b1324;--surface:#0f1b33;--ink:#e6edf7;--muted:#9db0ce;--border:#1f2b45;--chip:#0f1a2d;--accent:#7c5cff;}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,#0f2244,#0b1324 40%),#0b1324;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial}
+    .container{max-width:1080px;margin:0 auto;padding:28px 20px 56px}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+    .logo{width:14px;height:14px;border-radius:999px;background:linear-gradient(135deg,#7c5cff,#22d3ee);box-shadow:0 0 18px rgba(124,92,255,.35)}
+    .title{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+    h1{margin:0;font-size:26px;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:12px;margin-top:2px}
+    .panel{background:linear-gradient(180deg,#0f1b33,#0b1324);border:1px solid var(--border);border-radius:16px;padding:14px}
+    .row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+    .row input{flex:1;min-width:260px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--chip);color:var(--ink)}
+    .btn{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0b1428;color:#e6edf7;cursor:pointer;font-weight:600;font-size:14px}
+    .btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+    .status{font-size:12px;color:#bcd0ef}
+    .grid{margin-top:14px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    @media (max-width:760px){.grid{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,#0f1c35,#0c172b);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;gap:14px;align-items:flex-start}
+    .icon{flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:#0e1930;display:grid;place-items:center;border:1px solid #223150;font-size:22px}
+    .title-zh{font-weight:700;font-size:16px;margin:0}
+    .tag{display:inline-block;margin-top:6px;padding:4px 8px;border:1px solid #243251;border-radius:999px;font-size:12px;color:#b7c7e2}
+    .actions{margin-left:auto;display:flex;gap:8px}
+    .foot{margin-top:14px;color:#9db0ce;font-size:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo"></div>
+      <div>
+        <div class="title"><h1>APM Apps Hub</h1><span class="sub">Offline-ready · 可離線 · 有「更新」鈕</span></div>
+        <div class="sub">第一次載入會快取殼層；之後離線可用。按「更新」會抓取最新版本與清單。</div>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="row">
+        <input id="q" placeholder="Search / 搜尋… (e.g. WRU, CBTC, Password)" />
+        <button class="btn" id="btn-clear">清除</button>
+        <button class="btn primary" id="btn-update" title="檢查並更新到最新版本">更新</button>
+        <span class="status" id="status"></span>
+      </div>
+
+      <div id="grid" class="grid"></div>
+
+      <div class="foot">
+        <div>快捷鍵：<b>1–9</b> 開啟第 N 個</div>
+        <div id="count"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const q = document.getElementById('q');
+    const btnClear = document.getElementById('btn-clear');
+    const btnUpdate = document.getElementById('btn-update');
+    const statusEl = document.getElementById('status');
+    let APPS = [];
+
+    function setStatus(msg){ statusEl.textContent = msg || ''; }
+    function openApp(url){ window.open(url, '_blank', 'noopener,noreferrer'); }
+
+    function render(){
+      const term = (q.value || '').toLowerCase();
+      grid.innerHTML = '';
+      const list = APPS.filter(a => !term || a.title.toLowerCase().includes(term) || (a.tag||'').toLowerCase().includes(term));
+      list.forEach((a)=>{
+        const card = document.createElement('div'); card.className = 'card';
+        const icon = document.createElement('div'); icon.className = 'icon'; icon.textContent = a.icon || '🧭';
+        const wrap = document.createElement('div'); wrap.style.flex='1';
+        const h = document.createElement('h3'); h.className = 'title-zh'; h.textContent = a.title;
+        const tag = document.createElement('div'); tag.className = 'tag'; tag.textContent = a.tag || '';
+        const actions = document.createElement('div'); actions.className='actions';
+        const openBtn = document.createElement('button'); openBtn.className = 'btn primary'; openBtn.textContent = 'Open / 開啟';
+        openBtn.addEventListener('click', ()=> openApp(a.url));
+        actions.appendChild(openBtn);
+        wrap.appendChild(h); wrap.appendChild(tag);
+        card.appendChild(icon); card.appendChild(wrap); card.appendChild(actions);
+        grid.appendChild(card);
+      });
+      document.getElementById('count').textContent = list.length + ' apps';
+    }
+
+    window.addEventListener('keydown', (e)=>{
+      const n = parseInt(e.key,10);
+      if(n>=1 && n<=9){
+        const term = (q.value || '').toLowerCase();
+        const list = APPS.filter(a => !term || a.title.toLowerCase().includes(term) || (a.tag||'').toLowerCase().includes(term));
+        const item = list[n-1]; if(item) openApp(item.url);
+      }
+    });
+    q.addEventListener('input', render);
+    btnClear.addEventListener('click', ()=>{ q.value=''; render(); });
+
+    async function loadApps(networkOnly=false){
+      setStatus('載入清單…');
+      try{
+        const url = './apps.json' + (networkOnly ? ('?v=' + Date.now()) : '');
+        const opts = networkOnly ? {cache:'no-store'} : {};
+        const res = await fetch(url, opts);
+        APPS = await res.json();
+        setStatus(networkOnly ? '清單已更新' : '');
+      }catch(e){
+        console.error(e);
+        if(!networkOnly) setStatus('離線清單已載入');
+        else setStatus('更新清單失敗（離線？）');
+      }finally{
+        render();
+      }
+    }
+
+    // --- Update workflow ---
+    // 1) 強制抓最新 apps.json（不走快取）
+    // 2) 叫 SW 檢查新版本，若有 waiting SW -> 觸發 skipWaiting -> 自動重載
+    async function updateNow(){
+      setStatus('檢查更新…');
+      await loadApps(true);
+      if('serviceWorker' in navigator){
+        const reg = await navigator.serviceWorker.getRegistration();
+        try{
+          await reg?.update();
+        }catch{}
+        // 啟用等待中的新版 SW
+        if(reg && reg.waiting){
+          const ch = new MessageChannel();
+          reg.waiting.postMessage({type:'SKIP_WAITING'}, [ch.port2]);
+          setStatus('發現新版本，正在切換…');
+        }else{
+          // 沒有 waiting，就請 SW 自行預抓資源
+          reg?.active?.postMessage({type:'WARMUP'});
+          setStatus('清單已更新（殼層維持最新）');
+        }
+      }else{
+        setStatus('清單已更新');
+      }
+    }
+    btnUpdate.addEventListener('click', updateNow);
+
+    // 當 SW controller 換人（新版接管）時重新整理
+    navigator.serviceWorker?.addEventListener('controllerchange', ()=>{
+      setStatus('新版已啟用，重新載入…');
+      location.reload();
+    });
+
+    // 初次載入
+    loadApps(false);
+
+    // 註冊 SW（離線版需要）
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', async ()=>{
+        try{
+          const reg = await navigator.serviceWorker.register('./sw-hub.js');
+          console.log('SW registered', reg);
+        }catch(e){ console.error('SW failed', e); }
+      });
+    }
+  </script>
+</body>
+</html>
