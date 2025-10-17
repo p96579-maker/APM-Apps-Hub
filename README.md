@@ -1,1 +1,0 @@
-APM Apps Hub（PWA，中英介面）。上傳到 GitHub Pages 後，第一次開啟請保持 30–60 秒讓快取完成。
